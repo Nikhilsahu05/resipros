@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:resipros/screens/onboarding.dart';
-import 'package:resipros/screens/users_details_screens/user_details_work_profile.dart';
+import 'package:resipros/validate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 int? initScreen;
@@ -36,7 +36,7 @@ class _MyAppState extends State<MyApp> {
       home: Scaffold(
           body: initScreen == 0 || initScreen == null
               ? OnBoardingScreen()
-              : UserWorkProfile()),
+              : ValidateScreen()),
     );
   }
 }

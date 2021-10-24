@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,11 +14,26 @@ class UserWorkProfile extends StatefulWidget {
 }
 
 class _UserWorkProfileState extends State<UserWorkProfile> {
+  String tag = "UserWorkProfile + TAG";
+  FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
+
+  readStoreData() {
+    try {
+      _firebaseFirestore
+          .collection("personal_information")
+          .doc("profile")
+          .get()
+          .then((res) {
+        //TODO: Do Remaining by watching data.
+        print("${res} $tag");
+      });
+    } on Exception catch (e) {
+      print(e);
+    }
+  }
+
   bool? imagePathNull;
-  String _nameTextField = "";
-  TextEditingController _nameTextController = TextEditingController();
-  String _fullAddressTextField = "";
-  TextEditingController _fullAddressTextController = TextEditingController();
+
   File? image;
 
   Future getImage(ImageSource source) async {
@@ -43,44 +60,31 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
 
   @override
   void initState() {
+    readStoreData();
+    FirebaseAuth _auth = FirebaseAuth.instance;
+    print("$tag ${_auth.currentUser?.phoneNumber} ");
+    print("$tag ${_auth.currentUser?.displayName} ");
+    print("$tag ${_auth.currentUser?.uid} ");
+    print("$tag ${_auth.currentUser?.emailVerified} ");
+    print("$tag ${_auth.currentUser?.displayName} ");
+
     super.initState();
   }
-
-  String dropdownvalue1 = '0';
-  String dropdownvalue2 = '0';
-  String dropdownvalue3 = 'Year';
-
-  var yearOrMonth = ['Month', 'Year'];
-  var digitsList1 = [
-    '0',
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '6',
-    '7',
-    '8',
-    '9',
-  ];
-  var digitsList2 = [
-    '0',
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '6',
-    '7',
-    '8',
-    '9',
-  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFF0E0D06),
       appBar: AppBar(
+        actions: [
+          GestureDetector(
+              onTap: () {
+                FirebaseAuth _auth = FirebaseAuth.instance;
+                print("$tag ${_auth.currentUser} Logging off ");
+                _auth.signOut();
+              },
+              child: Icon(Icons.login))
+        ],
         centerTitle: true,
         title: Text(
           "Profile",
@@ -201,7 +205,6 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                               maxLines: 1,
                               style: TextStyle(
                                   color: Color(0xFFF4F4F4), letterSpacing: 3),
-                              controller: _nameTextController,
                               autofocus: false,
                               decoration: InputDecoration(
                                 prefixIcon: Icon(
@@ -260,7 +263,6 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                               maxLines: 4,
                               style: TextStyle(
                                   color: Color(0xFFF4F4F4), letterSpacing: 1),
-                              controller: _fullAddressTextController,
                               autofocus: false,
                               decoration: InputDecoration(
                                 errorMaxLines: 4,
@@ -331,7 +333,6 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                               maxLines: 4,
                               style: TextStyle(
                                   color: Color(0xFFF4F4F4), letterSpacing: 1),
-                              controller: _fullAddressTextController,
                               autofocus: false,
                               decoration: InputDecoration(
                                 errorMaxLines: 4,
@@ -451,30 +452,7 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton(
-                            isDense: true,
-                            dropdownColor: Colors.green,
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.white),
-                            value: dropdownvalue1,
-                            icon: Icon(
-                              Icons.keyboard_arrow_down,
-                              color: Colors.green,
-                            ),
-                            items: digitsList1.map((String items) {
-                              return DropdownMenuItem(
-                                  value: items, child: Text(items));
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                dropdownvalue1 = newValue!;
-                              });
-                            },
-                          ),
-                        ),
+                        child: Text(""),
                       ),
                     ),
                     SizedBox(
@@ -492,30 +470,7 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton(
-                            isDense: true,
-                            dropdownColor: Colors.green,
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.white),
-                            value: dropdownvalue2,
-                            icon: Icon(
-                              Icons.keyboard_arrow_down,
-                              color: Colors.green,
-                            ),
-                            items: digitsList2.map((String items) {
-                              return DropdownMenuItem(
-                                  value: items, child: Text(items));
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                dropdownvalue2 = newValue!;
-                              });
-                            },
-                          ),
-                        ),
+                        child: Text(""),
                       ),
                     ),
                     SizedBox(
@@ -533,30 +488,7 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                           ),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton(
-                            isDense: true,
-                            dropdownColor: Colors.green,
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.white),
-                            value: dropdownvalue3,
-                            icon: Icon(
-                              Icons.keyboard_arrow_down,
-                              color: Colors.green,
-                            ),
-                            items: yearOrMonth.map((String items) {
-                              return DropdownMenuItem(
-                                  value: items, child: Text(items));
-                            }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                dropdownvalue3 = newValue!;
-                              });
-                            },
-                          ),
-                        ),
+                        child: Text(""),
                       ),
                     ),
                     SizedBox(
@@ -608,7 +540,6 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                               maxLines: 1,
                               style: TextStyle(
                                   color: Color(0xFFF4F4F4), letterSpacing: 3),
-                              controller: _nameTextController,
                               keyboardType: TextInputType.number,
                               autofocus: false,
                               decoration: InputDecoration(
