@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -14,22 +15,49 @@ class UserWorkProfile extends StatefulWidget {
 }
 
 class _UserWorkProfileState extends State<UserWorkProfile> {
+  TextEditingController _fullAddressTextEditingController =
+      TextEditingController();
+  TextEditingController _fullNameTextEditingController =
+      TextEditingController();
+  TextEditingController _localityTextEditingController =
+      TextEditingController();
+  TextEditingController _mobileTextEditingController = TextEditingController();
+  TextEditingController _pincodeTextEditingController = TextEditingController();
+
   String tag = "UserWorkProfile + TAG";
   FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
-
+  var _profileImage = "http://placehold.it/120x120";
   readStoreData() {
-    try {
-      _firebaseFirestore
-          .collection("personal_information")
-          .doc("profile")
-          .get()
-          .then((res) {
-        //TODO: Do Remaining by watching data.
-        print("${res} $tag");
+    _firebaseFirestore
+        .collection("personal_information")
+        .doc("profile")
+        .snapshots()
+        .listen((res) {
+      setState(() {
+        _fullNameTextEditingController.text = res.data()!["fullname"];
+        _fullAddressTextEditingController.text = res.data()!["fulladdress"];
+        _localityTextEditingController.text = res.data()!["locality"];
+        _mobileTextEditingController.text = res.data()!["mobile"];
+        _pincodeTextEditingController.text = res.data()!["pincode"];
       });
-    } on Exception catch (e) {
-      print(e);
-    }
+      print("$res readStoreData Success");
+      print("${res.data()} readStoreData data");
+      print("${res.id} readStoreData id");
+    });
+  }
+
+  updateStoreData() {
+    _firebaseFirestore
+        .collection("personal_information")
+        .doc("profile")
+        .update({
+          "fullname": _fullNameTextEditingController.text,
+          "fulladdress": _fullAddressTextEditingController.text,
+        })
+        .then((value) => print("Updated"))
+        .catchError((onError) {
+          print(onError);
+        });
   }
 
   bool? imagePathNull;
@@ -46,6 +74,38 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
       setState(() {
         this.image = imagePermanent;
       });
+
+      if (imagePermanent.path.length != 0) {
+        File image = File(imagePermanent.path);
+        FirebaseStorage _storage = FirebaseStorage.instance;
+        _storage
+            .ref()
+            .child("store_profilePicture")
+            .child('profile_Picture')
+            .putFile(image)
+            .then((image_url) {
+          print("Image Succefully Uploaded + $image_url + ");
+          image_url.ref.getDownloadURL().then((url) {
+            print("$url is the upload url of the image");
+            setState(() {
+              _profileImage = url;
+            });
+
+            _firebaseFirestore
+                .collection("personal_information")
+                .doc("profile")
+                .update({
+                  "image_url": url,
+                })
+                .then((value) => print("Updated"))
+                .catchError((onError) {
+                  print(onError);
+                });
+          });
+        }).catchError((onError) {
+          print("Some Error Found on Uploading Image +  $onError");
+        });
+      }
     } on PlatformException catch (e) {
       print('Failed to pick image: $e');
     }
@@ -79,6 +139,7 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
         actions: [
           GestureDetector(
               onTap: () {
+                updateStoreData();
                 FirebaseAuth _auth = FirebaseAuth.instance;
                 print("$tag ${_auth.currentUser} Logging off ");
                 _auth.signOut();
@@ -108,49 +169,18 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                   SizedBox(
                     width: 30.0,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: image != null
-                        ? ClipOval(
-                            child: Image.file(
-                              image!,
-                              width: 110,
-                              height: 110,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : GestureDetector(
-                            onTap: () {
-                              getImage(ImageSource.gallery);
-
-                              if (image?.path == null) {
-                                imagePathNull = true;
-                              } else {
-                                print("Image is not Null");
-                              }
-                              print("${image?.path}");
-                            },
-                            child: ClipOval(
-                                child: Image.asset(
-                              "assets/images/upload_image.png",
-                              width: 110,
-                              height: 110,
-                              fit: BoxFit.cover,
-                            )),
-                          ),
-                  ),
-                  Visibility(
-                    visible: imagePathNull == true ? true : false,
+                  GestureDetector(
+                    onTap: () {
+                      getImage(ImageSource.camera);
+                    },
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12.0),
-                      child: GestureDetector(
-                        onTap: () {
-                          getImage(ImageSource.gallery);
-                        },
-                        child: Icon(
-                          Icons.edit,
-                          color: Colors.orange,
-                          size: 30,
+                      padding: const EdgeInsets.all(8.0),
+                      child: ClipOval(
+                        child: Image.network(
+                          _profileImage,
+                          width: 110,
+                          height: 110,
+                          fit: BoxFit.cover,
                         ),
                       ),
                     ),
@@ -202,6 +232,7 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 5.0, vertical: 3),
                             child: TextField(
+                              controller: _fullNameTextEditingController,
                               maxLines: 1,
                               style: TextStyle(
                                   color: Color(0xFFF4F4F4), letterSpacing: 3),
@@ -261,6 +292,7 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                                 horizontal: 5.0, vertical: 3),
                             child: TextField(
                               maxLines: 4,
+                              controller: _fullAddressTextEditingController,
                               style: TextStyle(
                                   color: Color(0xFFF4F4F4), letterSpacing: 1),
                               autofocus: false,
@@ -578,6 +610,13 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                   ],
                 ),
               ),
+              ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      updateStoreData();
+                    });
+                  },
+                  child: Text("Update Data")),
             ],
           ),
         ),
