@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_otp_text_field/flutter_otp_text_field.dart';
@@ -15,6 +16,15 @@ class OTPScreen extends StatefulWidget {
 }
 
 class _OTPScreenState extends State<OTPScreen> {
+  Future updateMobile() async {
+    FirebaseFirestore _firebaseStore = FirebaseFirestore.instance;
+    FirebaseAuth _auth = FirebaseAuth.instance;
+    final mobileNumber = await _auth.currentUser!.phoneNumber;
+    _firebaseStore.collection("personal_information").doc("profile").update({
+      "mobile": mobileNumber,
+    });
+  }
+
   var alertStyle = AlertStyle(
     animationType: AnimationType.grow,
     isCloseButton: false,
@@ -60,9 +70,13 @@ class _OTPScreenState extends State<OTPScreen> {
                   "Continue",
                   style: TextStyle(color: Colors.white, fontSize: 20),
                 ),
-                onPressed: () => Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => UserWorkProfile()),
-                    (Route<dynamic> route) => false),
+                onPressed: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                          builder: (context) => UserWorkProfile()),
+                      (Route<dynamic> route) => false);
+                  updateMobile();
+                },
                 color: Colors.green,
                 radius: BorderRadius.circular(0.0),
               ),
