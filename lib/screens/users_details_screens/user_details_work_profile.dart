@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:resipros/constants/constants.dart';
@@ -11,42 +12,94 @@ class UserWorkProfile extends StatefulWidget {
 }
 
 class _UserWorkProfileState extends State<UserWorkProfile> {
+  bool isUploading = false;
   File? image;
   var profileImage =
       "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
   String mobileNumber = "";
 
+  TextEditingController _fullNameTextController = TextEditingController();
+  TextEditingController _fullAddressTextController = TextEditingController();
+  TextEditingController _pinCodeTextController = TextEditingController();
+  TextEditingController _fullLocalityTextController = TextEditingController();
+
+  Future updateDataFirebase() async {
+    FirebaseFirestore _firebaseStore = FirebaseFirestore.instance;
+    try {
+      _firebaseStore.collection("personal_information").doc("profile").update({
+        "image_url": profileImage,
+        "fulladdress": _fullAddressTextController.text,
+        "fullname": _fullNameTextController.text,
+        "locality": _fullLocalityTextController.text,
+        "pincode": _pinCodeTextController.text,
+      });
+      print("Successfully data retrive + updateDataFirebase");
+    } on Exception catch (e) {
+      print("Failed to  data retrive + updateDataFirebase +$e ");
+    }
+  }
+
   Future getData() async {
     FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
-    _firebaseFirestore
-        .collection('personal_information')
-        .doc("profile")
-        .get()
-        .then((res) {
-      print("User Work Profile ${res.data()!["mobile"]}");
-      setState(() {
-        mobileNumber = res.data()!["mobile"];
-        print(mobileNumber);
+    try {
+      _firebaseFirestore
+          .collection('personal_information')
+          .doc("profile")
+          .get()
+          .then((res) {
+        print("User Work Profile ${res.data()!["mobile"]}");
+        setState(() {
+          mobileNumber = res.data()!["mobile"];
+          print(mobileNumber);
+        });
       });
-    });
+      print("Successfully data retrive + getData");
+    } on Exception catch (e) {
+      print("Failed to  data retrive + getData +$e ");
+    }
   }
 
   Future getImage(ImageSource source) async {
-    try {
-      final image = await ImagePicker().pickImage(source: source);
-      if (image == null) return print("Image is null");
-    } on Exception catch (e) {
-      print("Get Image error $e");
-
+    var image = await ImagePicker().pickImage(source: source);
+    if (image!.path.length != 0) {
+      File imagePath = File(image.path);
+      print("process stated");
       setState(() {
-        this.image = File(image!.path);
-        ;
+        isUploading = true;
+        if (isUploading == true) {}
       });
+      FirebaseStorage _firebaseStorage = FirebaseStorage.instance;
+      _firebaseStorage
+          .ref()
+          .child("storeProfile")
+          .child("profileImage")
+          .putFile(imagePath)
+          .then((res) {
+        print("GET IMAGE SUCCESS THEN ==> $res");
+        res.ref.getDownloadURL().then((url) {
+          print(
+              "GET IMAGE SUCCESSFULLY RETRIEVED URL OF IMAGE FROM FIRESTORE + $url");
+          setState(() {
+            profileImage = url;
+            setState(() {
+              isUploading = false;
+            });
+            print("process ended");
+          });
+        }).catchError((error) {
+          print("GET IMAGE ERROR ON DOWNLOADING URL + $error");
+        });
+      }).catchError((e) {
+        print("getImage Error + $e");
+      });
+    } else {
+      print('No File Picked');
     }
   }
 
   @override
   void initState() {
+    updateDataFirebase();
     getData();
     super.initState();
   }
@@ -76,20 +129,28 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
               SizedBox(
                 height: 35,
               ),
-              Center(
-                child: GestureDetector(
-                  onTap: () {
-                    getImage(ImageSource.gallery);
-                  },
-                  child: ClipOval(
-                    child: CircleAvatar(
-                      child: Image.network("$profileImage"),
-                      backgroundColor: Colors.black,
-                      maxRadius: 55,
+              isUploading == true
+                  ? CircularProgressIndicator(
+                      color: Colors.blue.shade600,
+                    )
+                  : Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          getImage(ImageSource.gallery);
+                        },
+                        child: ClipOval(
+                          child: CircleAvatar(
+                            child: Image.network(
+                              "$profileImage",
+                              height: 200,
+                              width: 200,
+                            ),
+                            backgroundColor: Colors.grey,
+                            maxRadius: 55,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
               SizedBox(
                 height: 50,
               ),
@@ -101,6 +162,7 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                   borderRadius: BorderRadius.circular(12.0),
                 ),
                 child: TextField(
+                  controller: _fullNameTextController,
                   textAlign: TextAlign.center,
                   decoration: InputDecoration(
                     border: InputBorder.none,
@@ -142,6 +204,7 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                   borderRadius: BorderRadius.circular(12.0),
                 ),
                 child: TextField(
+                  controller: _fullAddressTextController,
                   textAlign: TextAlign.center,
                   decoration: InputDecoration(
                     border: InputBorder.none,
@@ -167,6 +230,7 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                         borderRadius: BorderRadius.circular(12.0),
                       ),
                       child: TextField(
+                        controller: _pinCodeTextController,
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
                         decoration: InputDecoration(
@@ -271,6 +335,7 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                   borderRadius: BorderRadius.circular(12.0),
                 ),
                 child: TextField(
+                  controller: _fullLocalityTextController,
                   textAlign: TextAlign.center,
                   decoration: InputDecoration(
                     border: InputBorder.none,
@@ -294,7 +359,11 @@ class _UserWorkProfileState extends State<UserWorkProfile> {
                     ),
                     primary: Colors.blue.shade600,
                   ),
-                  onPressed: () {},
+                  onPressed: () {
+                    setState(() {
+                      updateDataFirebase();
+                    });
+                  },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     crossAxisAlignment: CrossAxisAlignment.center,
